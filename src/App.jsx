@@ -118,10 +118,13 @@ export default function App() {
     };
 
     try {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbw7-dXjiTp6ofIaDjgKDO2wj64HmUKns_4zYvurmfsdcq4L7OJ8D1-Vg3NS19Rou5s/exec", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        "https://script.google.com/macros/s/AKfycbw7-dXjiTp6ofIaDjgKDO2wj64HmUKns_4zYvurmfsdcq4L7OJ8D1-Vg3NS19Rou5s/exec",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
       const data = await res.json();
       console.log("Google Sheet response:", data);
     } catch (err) {
@@ -140,7 +143,7 @@ export default function App() {
       createdBy: currentUser.name,
     };
     setTasks([...tasks, task]);
-    sendToGoogleSheet(task);
+    sendToGoogleSheet(task); // <-- kirim ke Google Sheet
     setNewTask({
       title: "",
       desc: "",
@@ -168,260 +171,281 @@ export default function App() {
             t.assignedTo === currentUser?.name
         );
 
+  // ==== LOGIN PAGE ====
   if (!currentUser) {
     return (
-      <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-xl shadow">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login / Join</h2>
-        <input
-          className="w-full mb-2 p-2 border rounded-lg focus:ring focus:ring-blue-300"
-          placeholder="Nama"
-          value={loginData.name}
-          onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
-        />
-        <select
-          className="w-full mb-2 p-2 border rounded-lg focus:ring focus:ring-blue-300"
-          value={loginData.department}
-          onChange={(e) =>
-            setLoginData({ ...loginData, department: e.target.value })
-          }
-        >
-          {departments.map((dep) => (
-            <option key={dep} value={dep}>
-              {dep}
-            </option>
-          ))}
-        </select>
-        <input
-          className="w-full mb-2 p-2 border rounded-lg focus:ring focus:ring-blue-300"
-          placeholder="Jabatan"
-          value={loginData.position}
-          onChange={(e) =>
-            setLoginData({ ...loginData, position: e.target.value })
-          }
-        />
-        <label className="flex items-center mb-4 text-sm">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+        <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-md">
+          <h2 className="text-2xl font-bold mb-4 text-center">
+            Login / Join
+          </h2>
           <input
-            type="checkbox"
-            className="mr-2"
-            checked={loginData.role === "manager"}
+            className="w-full p-2 mb-3 border rounded-lg focus:ring focus:ring-blue-300"
+            placeholder="Nama"
+            value={loginData.name}
+            onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
+          />
+          <select
+            className="w-full p-2 mb-3 border rounded-lg focus:ring focus:ring-blue-300"
+            value={loginData.department}
             onChange={(e) =>
-              setLoginData({
-                ...loginData,
-                role: e.target.checked ? "manager" : "member",
-              })
+              setLoginData({ ...loginData, department: e.target.value })
+            }
+          >
+            {departments.map((dep) => (
+              <option key={dep} value={dep}>
+                {dep}
+              </option>
+            ))}
+          </select>
+          <input
+            className="w-full p-2 mb-3 border rounded-lg focus:ring focus:ring-blue-300"
+            placeholder="Jabatan"
+            value={loginData.position}
+            onChange={(e) =>
+              setLoginData({ ...loginData, position: e.target.value })
             }
           />
-          Login sebagai Manager
-        </label>
-        <button
-          onClick={login}
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
-        >
-          Masuk
-        </button>
+          <label className="flex items-center gap-2 mb-3 text-sm">
+            <input
+              type="checkbox"
+              checked={loginData.role === "manager"}
+              onChange={(e) =>
+                setLoginData({
+                  ...loginData,
+                  role: e.target.checked ? "manager" : "member",
+                })
+              }
+            />
+            Login sebagai Manager
+          </label>
+          <button
+            onClick={login}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Masuk
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ==== MAIN DASHBOARD ====
   return (
-    <div className="max-w-5xl mx-auto mt-8 p-6 bg-gray-50 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-4">Daily Activity Tracker</h2>
-
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <strong>{currentUser.name}</strong>{" "}
-          <span className="text-gray-600 text-sm">
-            — {currentUser.department}, {currentUser.position} (
-            {currentUser.role})
-          </span>
-        </div>
-        <button
-          onClick={logout}
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Tambah Aktivitas */}
-      <h3 className="text-xl font-semibold mb-3">Tambah Aktivitas</h3>
-      <input
-        className="w-full mb-2 p-2 border rounded-lg focus:ring focus:ring-blue-300"
-        placeholder="Judul"
-        value={newTask.title}
-        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-      />
-      <textarea
-        className="w-full mb-2 p-2 border rounded-lg focus:ring focus:ring-blue-300"
-        placeholder="Deskripsi"
-        value={newTask.desc}
-        onChange={(e) => setNewTask({ ...newTask, desc: e.target.value })}
-      />
-      <div className="mb-2">
-        <label className="block text-sm">Jam mulai:</label>
-        <input
-          type="time"
-          className="border rounded-lg p-2"
-          value={newTask.start}
-          onChange={(e) => setNewTask({ ...newTask, start: e.target.value })}
-        />
-      </div>
-      <div className="mb-2">
-        <label className="block text-sm">Jam selesai:</label>
-        <input
-          type="time"
-          className="border rounded-lg p-2"
-          value={newTask.end}
-          onChange={(e) => setNewTask({ ...newTask, end: e.target.value })}
-        />
-      </div>
-      <div className="mb-2">
-        <label className="block text-sm">Status:</label>
-        <select
-          className="border rounded-lg p-2"
-          value={newTask.status}
-          onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-        >
-          <option>Belum mulai</option>
-          <option>On-going</option>
-          <option>Selesai</option>
-        </select>
-      </div>
-      {currentUser.role === "manager" && (
-        <div className="mb-2">
-          <label className="block text-sm">Assign ke:</label>
-          <select
-            className="border rounded-lg p-2 w-full"
-            value={newTask.assignedTo}
-            onChange={(e) =>
-              setNewTask({ ...newTask, assignedTo: e.target.value })
-            }
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow">
+          <div>
+            <h2 className="text-xl font-bold">Daily Activity Tracker</h2>
+            <p className="text-sm text-gray-600">
+              {currentUser.name} — {currentUser.department},{" "}
+              {currentUser.position} ({currentUser.role})
+            </p>
+          </div>
+          <button
+            onClick={logout}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
           >
-            <option value="">(Pilih user)</option>
-            {users.map((u) => (
-              <option key={u.name} value={u.name}>
-                {u.name} — {u.department}, {u.position}
-              </option>
-            ))}
-          </select>
+            Logout
+          </button>
         </div>
-      )}
-      <button
-        onClick={addTask}
-        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
-      >
-        Tambah
-      </button>
 
-      {/* Ringkasan */}
-      <h3 className="text-xl font-semibold mt-8 mb-3">Daftar Aktivitas</h3>
-      <div className="mb-4 p-4 bg-white rounded-lg shadow text-sm">
-        <strong>Ringkasan (Total):</strong>
-        <br />
-        Belum mulai:{" "}
-        {visibleTasks.filter((t) => t.status === "Belum mulai").length} | On-going:{" "}
-        {visibleTasks.filter((t) => t.status === "On-going").length} | Selesai:{" "}
-        {visibleTasks.filter((t) => t.status === "Selesai").length}
-      </div>
-
-      {/* Manager View */}
-      {currentUser.role === "manager" ? (
-        <div className="flex gap-4 overflow-x-auto">
-          {users
-            .filter((u) => u.role !== "manager")
-            .map((u) => {
-              const userTasks = tasks.filter(
-                (t) => t.createdBy === u.name || t.assignedTo === u.name
-              );
-              const belum = userTasks.filter((t) => t.status === "Belum mulai")
-                .length;
-              const ongoing = userTasks.filter((t) => t.status === "On-going")
-                .length;
-              const selesai = userTasks.filter((t) => t.status === "Selesai")
-                .length;
-              const totalDurasi = sumDurations(userTasks);
-              return (
-                <div
-                  key={u.name}
-                  className="flex-shrink-0 w-72 border rounded-lg p-4 bg-white shadow"
-                >
-                  <h4 className="font-semibold mb-2">
-                    {u.name} — {u.department}, {u.position}
-                  </h4>
-                  <div className="text-sm mb-3 p-2 bg-blue-50 rounded">
-                    <strong>Ringkasan:</strong> Belum mulai: {belum} | On-going:{" "}
-                    {ongoing} | Selesai: {selesai} | Total: {totalDurasi}
-                  </div>
-                  {userTasks.length === 0 && (
-                    <em className="text-gray-500 text-sm">Tidak ada aktivitas</em>
-                  )}
-                  <ul className="space-y-3">
-                    {userTasks.map((a) => (
-                      <li
-                        key={a.id}
-                        className="border rounded-lg p-3 bg-gray-50 shadow-sm"
-                      >
-                        <strong>{a.title}</strong>
-                        <div className="text-xs text-gray-600">{a.desc}</div>
-                        <div className="text-xs text-gray-500">
-                          {a.start} - {a.end} ({calcDuration(a.start, a.end)})
-                        </div>
-                        <div className="mt-1">
-                          <label className="text-xs">Status: </label>
-                          <select
-                            className="border rounded p-1 text-sm"
-                            value={a.status}
-                            onChange={(e) =>
-                              updateTask(a.id, "status", e.target.value)
-                            }
-                          >
-                            <option>Belum mulai</option>
-                            <option>On-going</option>
-                            <option>Selesai</option>
-                          </select>
-                        </div>
-                        <button
-                          onClick={() => deleteTask(a.id)}
-                          className="mt-2 text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
-                        >
-                          Hapus
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {visibleTasks.map((a) => (
-            <li key={a.id} className="border p-3 rounded-lg bg-white shadow-sm">
-              <strong>{a.title}</strong> <br />
-              <small className="text-gray-600">{a.desc}</small>
-              <div className="text-xs text-gray-500">
-                {a.start} - {a.end} ({calcDuration(a.start, a.end)})
+        {/* Tambah Aktivitas */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">Tambah Aktivitas</h3>
+          <div className="space-y-3">
+            <input
+              className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+              placeholder="Judul"
+              value={newTask.title}
+              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+            />
+            <textarea
+              className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+              placeholder="Deskripsi"
+              value={newTask.desc}
+              onChange={(e) => setNewTask({ ...newTask, desc: e.target.value })}
+            />
+            <div className="flex gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm">Jam mulai</label>
+                <input
+                  type="time"
+                  className="p-2 border rounded-lg focus:ring focus:ring-blue-300"
+                  value={newTask.start}
+                  onChange={(e) =>
+                    setNewTask({ ...newTask, start: e.target.value })
+                  }
+                />
               </div>
-              <div className="mt-1">
-                <label className="text-xs">Status: </label>
+              <div className="flex flex-col">
+                <label className="text-sm">Jam selesai</label>
+                <input
+                  type="time"
+                  className="p-2 border rounded-lg focus:ring focus:ring-blue-300"
+                  value={newTask.end}
+                  onChange={(e) =>
+                    setNewTask({ ...newTask, end: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm">Status</label>
+              <select
+                className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+                value={newTask.status}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, status: e.target.value })
+                }
+              >
+                <option>Belum mulai</option>
+                <option>On-going</option>
+                <option>Selesai</option>
+              </select>
+            </div>
+            {currentUser.role === "manager" && (
+              <div>
+                <label className="text-sm">Assign ke</label>
                 <select
-                  className="border rounded p-1 text-sm"
-                  value={a.status}
-                  onChange={(e) => updateTask(a.id, "status", e.target.value)}
+                  className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+                  value={newTask.assignedTo}
+                  onChange={(e) =>
+                    setNewTask({ ...newTask, assignedTo: e.target.value })
+                  }
                 >
-                  <option>Belum mulai</option>
-                  <option>On-going</option>
-                  <option>Selesai</option>
+                  <option value="">(Pilih user)</option>
+                  {users.map((u) => (
+                    <option key={u.name} value={u.name}>
+                      {u.name} — {u.department}, {u.position}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Dibuat oleh: {a.createdBy}
-                {a.assignedTo && ` | Ditugaskan ke: ${a.assignedTo}`}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+            )}
+            <button
+              onClick={addTask}
+              className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+            >
+              Tambah
+            </button>
+          </div>
+        </div>
+
+        {/* Ringkasan */}
+        <div className="bg-white shadow rounded-lg p-4">
+          <strong>Ringkasan (Total):</strong>
+          <div className="text-sm mt-1">
+            Belum mulai:{" "}
+            {visibleTasks.filter((t) => t.status === "Belum mulai").length} | On-going:{" "}
+            {visibleTasks.filter((t) => t.status === "On-going").length} | Selesai:{" "}
+            {visibleTasks.filter((t) => t.status === "Selesai").length}
+          </div>
+        </div>
+
+        {/* Daftar Aktivitas */}
+        {currentUser.role === "manager" ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users
+              .filter((u) => u.role !== "manager")
+              .map((u) => {
+                const userTasks = tasks.filter(
+                  (t) => t.createdBy === u.name || t.assignedTo === u.name
+                );
+                const belum = userTasks.filter((t) => t.status === "Belum mulai")
+                  .length;
+                const ongoing = userTasks.filter((t) => t.status === "On-going")
+                  .length;
+                const selesai = userTasks.filter((t) => t.status === "Selesai")
+                  .length;
+                const totalDurasi = sumDurations(userTasks);
+                return (
+                  <div
+                    key={u.name}
+                    className="bg-white rounded-lg shadow p-4"
+                  >
+                    <h4 className="font-semibold mb-2">
+                      {u.name} — {u.department}, {u.position}
+                    </h4>
+                    <div className="text-sm bg-blue-50 p-2 rounded mb-3">
+                      <strong>Ringkasan:</strong> Belum mulai: {belum} | On-going:{" "}
+                      {ongoing} | Selesai: {selesai} | Total: {totalDurasi}
+                    </div>
+                    {userTasks.length === 0 && (
+                      <em className="text-gray-500">Tidak ada aktivitas</em>
+                    )}
+                    <ul className="space-y-2">
+                      {userTasks.map((a) => (
+                        <li
+                          key={a.id}
+                          className="border rounded-lg p-3 bg-gray-50"
+                        >
+                          <strong>{a.title}</strong>
+                          <p className="text-sm text-gray-600">{a.desc}</p>
+                          <p className="text-xs text-gray-500">
+                            {a.start} - {a.end} ({calcDuration(a.start, a.end)})
+                          </p>
+                          <div className="mt-2">
+                            <label className="text-sm">Status: </label>
+                            <select
+                              className="p-1 border rounded"
+                              value={a.status}
+                              onChange={(e) =>
+                                updateTask(a.id, "status", e.target.value)
+                              }
+                            >
+                              <option>Belum mulai</option>
+                              <option>On-going</option>
+                              <option>Selesai</option>
+                            </select>
+                          </div>
+                          <button
+                            onClick={() => deleteTask(a.id)}
+                            className="mt-2 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                          >
+                            Hapus
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {visibleTasks.map((a) => (
+              <li
+                key={a.id}
+                className="bg-white p-4 rounded-lg shadow border"
+              >
+                <strong>{a.title}</strong>
+                <p className="text-sm text-gray-600">{a.desc}</p>
+                <p className="text-xs text-gray-500">
+                  {a.start} - {a.end} ({calcDuration(a.start, a.end)})
+                </p>
+                <div className="mt-2">
+                  <label className="text-sm">Status: </label>
+                  <select
+                    className="p-1 border rounded"
+                    value={a.status}
+                    onChange={(e) => updateTask(a.id, "status", e.target.value)}
+                  >
+                    <option>Belum mulai</option>
+                    <option>On-going</option>
+                    <option>Selesai</option>
+                  </select>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Dibuat oleh: {a.createdBy}
+                  {a.assignedTo && ` | Ditugaskan ke: ${a.assignedTo}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
