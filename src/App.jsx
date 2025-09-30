@@ -7,154 +7,117 @@
 import React, { useState } from "react";
 
 const App = () => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loginData, setLoginData] = useState({
-    name: "",
+  const [currentUser, setCurrentUser] = useState({
+    name: "dea",
     department: "WH",
-    position: "",
+    position: "admin",
     role: "member",
   });
   const [activities, setActivities] = useState([]);
-  const [newActivity, setNewActivity] = useState("");
-
-  const departments = ["WH", "Admin", "Finance", "GA", "Sales"];
-
-  const login = () => {
-    if (!loginData.name || !loginData.position) {
-      alert("Nama dan Jabatan wajib diisi!");
-      return;
-    }
-    setCurrentUser(loginData);
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    setLoginData({ name: "", department: "WH", position: "", role: "member" });
-  };
+  const [newActivity, setNewActivity] = useState({
+    title: "",
+    description: "",
+    start: "",
+    end: "",
+    status: "Belum mulai",
+  });
 
   const addActivity = () => {
-    if (!newActivity) return;
-    const activity = {
-      id: Date.now(),
-      text: newActivity,
-      user: currentUser.name,
-      department: currentUser.department,
-      position: currentUser.position,
-      role: currentUser.role,
-    };
-    setActivities([activity, ...activities]);
-    setNewActivity("");
+    if (!newActivity.title) return;
+    setActivities([{ id: Date.now(), ...newActivity }, ...activities]);
+    setNewActivity({ title: "", description: "", start: "", end: "", status: "Belum mulai" });
   };
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-center mb-6">Login / Join</h2>
-
-          <div className="space-y-4">
-            <input
-              placeholder="Nama"
-              value={loginData.name}
-              onChange={(e) =>
-                setLoginData({ ...loginData, name: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <select
-              value={loginData.department}
-              onChange={(e) =>
-                setLoginData({ ...loginData, department: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {departments.map((dep) => (
-                <option key={dep} value={dep}>
-                  {dep}
-                </option>
-              ))}
-            </select>
-
-            <input
-              placeholder="Jabatan"
-              value={loginData.position}
-              onChange={(e) =>
-                setLoginData({ ...loginData, position: e.target.value })
-              }
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={loginData.role === "manager"}
-                onChange={(e) =>
-                  setLoginData({
-                    ...loginData,
-                    role: e.target.checked ? "manager" : "member",
-                  })
-                }
-                className="w-4 h-4"
-              />
-              <span className="text-gray-700">Login sebagai Manager</span>
-            </label>
-
-            <button
-              onClick={login}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition"
-            >
-              Masuk
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const statusCount = (status) =>
+    activities.filter((a) => a.status === status).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-6">
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            Selamat datang, {currentUser.name} ({currentUser.department})
-          </h2>
-          <button
-            onClick={logout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-          >
+          <h1 className="text-2xl font-bold text-gray-800">Daily Activity Tracker</h1>
+          <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
             Logout
           </button>
         </div>
+        <p className="text-gray-600 mb-8">
+          {currentUser.name} — {currentUser.department}, {currentUser.position} ({currentUser.role})
+        </p>
 
         {/* Form Tambah Aktivitas */}
-        <div className="flex space-x-2 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Tambah Aktivitas</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <input
-            placeholder="Tambah aktivitas..."
-            value={newActivity}
-            onChange={(e) => setNewActivity(e.target.value)}
-            className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Judul"
+            value={newActivity.title}
+            onChange={(e) => setNewActivity({ ...newActivity, title: e.target.value })}
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
           />
-          <button
-            onClick={addActivity}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          <textarea
+            placeholder="Deskripsi"
+            value={newActivity.description}
+            onChange={(e) => setNewActivity({ ...newActivity, description: e.target.value })}
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="time"
+            value={newActivity.start}
+            onChange={(e) => setNewActivity({ ...newActivity, start: e.target.value })}
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="time"
+            value={newActivity.end}
+            onChange={(e) => setNewActivity({ ...newActivity, end: e.target.value })}
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <select
+            value={newActivity.status}
+            onChange={(e) => setNewActivity({ ...newActivity, status: e.target.value })}
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
           >
-            Tambah
-          </button>
+            <option>Belum mulai</option>
+            <option>On-going</option>
+            <option>Selesai</option>
+          </select>
+        </div>
+        <button
+          onClick={addActivity}
+          className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Tambah
+        </button>
+
+        {/* Ringkasan */}
+        <div className="mt-8 bg-gray-50 p-4 rounded-lg shadow-sm">
+          <h3 className="font-semibold mb-2">Ringkasan (Total):</h3>
+          <p className="text-gray-600">
+            Belum mulai: {statusCount("Belum mulai")} | On-going: {statusCount("On-going")} | Selesai: {statusCount("Selesai")}
+          </p>
         </div>
 
         {/* Daftar Aktivitas */}
-        <h3 className="text-lg font-semibold mb-4">Daftar Aktivitas</h3>
-        <div className="space-y-3">
+        <h2 className="text-lg font-semibold mt-8 mb-4">Daftar Aktivitas</h2>
+        <div className="space-y-4">
           {activities.map((act) => (
-            <div
-              key={act.id}
-              className="p-4 border rounded-lg shadow-sm flex flex-col bg-gray-50"
-            >
-              <span className="text-gray-800">{act.text}</span>
-              <span className="text-sm text-gray-500 mt-1">
-                oleh {act.user} - {act.position} ({act.department})
-              </span>
+            <div key={act.id} className="p-4 border rounded-lg bg-white shadow-sm">
+              <h4 className="font-semibold text-gray-800">{act.title}</h4>
+              <p className="text-gray-600">{act.description}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {act.start} - {act.end} | Status:{" "}
+                <span
+                  className={
+                    act.status === "Selesai"
+                      ? "text-green-600 font-medium"
+                      : act.status === "On-going"
+                      ? "text-yellow-600 font-medium"
+                      : "text-red-600 font-medium"
+                  }
+                >
+                  {act.status}
+                </span>
+              </p>
             </div>
           ))}
           {activities.length === 0 && (
