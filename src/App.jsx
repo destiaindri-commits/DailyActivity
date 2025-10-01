@@ -5,6 +5,8 @@
 // 3. Add Tailwind CSS to project (optional) or the component will fall back to basic styling
 // Daily Activity Tracker with Google Sheet integration
 // Daily Activity Tracker - Single-file React prototype
+// Daily Activity Tracker - Single-file React prototype + Google Sheets integration
+
 import React, { useState, useEffect } from "react";
 
 // Hitung durasi aktivitas
@@ -13,7 +15,7 @@ function calcDuration(start, end) {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   let diff = eh * 60 + em - (sh * 60 + sm);
-  if (diff < 0) diff += 24 * 60;
+  if (diff < 0) diff += 24 * 60; // kalau nyebrang hari
   const h = Math.floor(diff / 60);
   const m = diff % 60;
   return `${h}j ${m}m`;
@@ -108,12 +110,20 @@ export default function App() {
       alert("Judul harus diisi");
       return;
     }
+
     const task = {
       ...newTask,
       id: Date.now(),
       createdBy: currentUser.name,
+      department: currentUser.department,
+      position: currentUser.position,
+      role: currentUser.role,
     };
+
+    // Simpan di local state
     setTasks([...tasks, task]);
+
+    // Reset form
     setNewTask({
       title: "",
       desc: "",
@@ -123,14 +133,17 @@ export default function App() {
       assignedTo: "",
     });
 
-    // 🔥 Kirim juga ke Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbw7-dXjiTp6ofIaDjgKDO2wj64HmUKns_4zYvurmfsdcq4L7OJ8D1-Vg3NS19Rou5s/exec", {
+    // Kirim ke Google Sheets
+    fetch("https://script.google.com/macros/s/AKfycbzqHZc-cpKl-jlyTjYXIrGPWKEYgVC5w06OrfqKvlg3v7zVow0DbAMx2hTj23nspR4/exec", {
       method: "POST",
       body: JSON.stringify(task),
+      headers: {
+        "Content-Type": "application/json",
+      },
     })
-      .then((res) => res.text())
-      .then((msg) => console.log("✅ Google Sheet response:", msg))
-      .catch((err) => console.error("❌ Gagal kirim ke GSheet:", err));
+      .then((res) => res.json())
+      .then((data) => console.log("Saved to Google Sheets:", data))
+      .catch((err) => console.error("Error:", err));
   };
 
   const updateTask = (id, field, value) => {
@@ -232,7 +245,7 @@ export default function App() {
         placeholder="Deskripsi"
         value={newTask.desc}
         onChange={(e) => setNewTask({ ...newTask, desc: e.target.value })}
-        style={{ marginBottom: 8, width: "100%" }}
+        style={{ width: "100%", marginBottom: 8 }}
       />
       <div style={{ marginBottom: 8 }}>
         <label>Jam mulai: </label>
@@ -283,7 +296,7 @@ export default function App() {
 
       <h3 style={{ marginTop: 30 }}>Daftar Aktivitas</h3>
 
-      {/* Resume aktivitas global */}
+      {/* Ringkasan aktivitas */}
       <div
         style={{
           marginBottom: 15,
@@ -302,7 +315,7 @@ export default function App() {
       </div>
 
       {currentUser.role === "manager" ? (
-        // Manager lihat aktivitas per user
+        // Manager lihat per user
         <div style={{ display: "flex", gap: "16px", overflowX: "auto" }}>
           {users
             .filter((u) => u.role !== "manager")
