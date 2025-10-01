@@ -4,349 +4,414 @@
 // 2. Replace App.jsx with this file's content, install dependencies (none required beyond React)
 // 3. Add Tailwind CSS to project (optional) or the component will fall back to basic styling
 // Daily Activity Tracker with Google Sheet integration
-import { useState } from "react";
-import "./index.css";
+// Daily Activity Tracker - Single-file React prototype
+// How to run:
+// 1. Create a new Vite React project: `npm create vite@latest my-app --template react`
+// 2. Replace App.jsx with this file's content, install dependencies (none required beyond React)
+// 3. Add Tailwind CSS to project (optional) or the component will fall back to basic styling
 
-function App() {
-  const [user, setUser] = useState(null);
-  const [activities, setActivities] = useState([]);
+import React, { useState, useEffect } from "react";
 
-  const handleLogin = (name) => {
-    setUser({ name, role: "admin", division: "Warehouse" });
-  };
+// Hitung durasi aktivitas
+function calcDuration(start, end) {
+  if (!start || !end) return "";
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let diff = eh * 60 + em - (sh * 60 + sm);
+  if (diff < 0) diff += 24 * 60; // kalau nyebrang hari
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return `${h}j ${m}m`;
+}
 
-  const handleLogout = () => {
-    setUser(null);
-    setActivities([]);
-  };
+// Hitung total durasi beberapa aktivitas
+function sumDurations(tasks) {
+  let total = 0;
+  tasks.forEach((t) => {
+    if (t.start && t.end) {
+      const [sh, sm] = t.start.split(":").map(Number);
+      const [eh, em] = t.end.split(":").map(Number);
+      let diff = eh * 60 + em - (sh * 60 + sm);
+      if (diff < 0) diff += 24 * 60;
+      total += diff;
+    }
+  });
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h}j ${m}m`;
+}
 
-  const addActivity = (activity) => {
-    setActivities([...activities, { id: Date.now(), ...activity }]);
-  };
+export default function App() {
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem("users");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem("tasks");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("currentUser");
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  const updateActivity = (id, updated) => {
-    setActivities(
-      activities.map((a) => (a.id === id ? { ...a, ...updated } : a))
+  useEffect(() => {
+    localStorage.setItem("users", JSON.stringify(users));
+  }, [users]);
+  useEffect(() => {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }, [tasks]);
+  useEffect(() => {
+    localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  }, [currentUser]);
+
+  const [loginData, setLoginData] = useState({
+    name: "",
+    department: "WH",
+    position: "",
+    role: "member",
+  });
+
+  const departments = ["WH", "MS1", "KR2", "KN4", "NT3", "Oven Team"];
+
+  const login = () => {
+    if (!loginData.name || !loginData.department || !loginData.position) {
+      alert("Isi semua data terlebih dahulu!");
+      return;
+    }
+    const existing = users.find(
+      (u) =>
+        u.name === loginData.name &&
+        u.department === loginData.department &&
+        u.position === loginData.position
     );
+    let user;
+    if (existing) {
+      user = existing;
+    } else {
+      user = { ...loginData };
+      setUsers([...users, user]);
+    }
+    setCurrentUser(user);
   };
 
-  const deleteActivity = (id) => {
-    setActivities(activities.filter((a) => a.id !== id));
+  const logout = () => {
+    setCurrentUser(null);
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100 p-4">
-      {!user ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        <Dashboard
-          user={user}
-          activities={activities}
-          onAdd={addActivity}
-          onUpdate={updateActivity}
-          onDelete={deleteActivity}
-          onLogout={handleLogout}
-        />
-      )}
-    </div>
-  );
-}
+  const [newTask, setNewTask] = useState({
+    title: "",
+    desc: "",
+    start: "",
+    end: "",
+    status: "Belum mulai",
+    assignedTo: "",
+  });
 
-// -------------------- Login --------------------
-function Login({ onLogin }) {
-  const [name, setName] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name) return;
-    onLogin(name);
+  const addTask = () => {
+    if (!newTask.title) {
+      alert("Judul harus diisi");
+      return;
+    }
+    const task = {
+      ...newTask,
+      id: Date.now(),
+      createdBy: currentUser.name,
+    };
+    setTasks([...tasks, task]);
+    setNewTask({
+      title: "",
+      desc: "",
+      start: "",
+      end: "",
+      status: "Belum mulai",
+      assignedTo: "",
+    });
   };
 
-  return (
-    <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-6">
-      <h1 className="text-2xl font-bold text-center text-indigo-600 mb-6">
-        Daily Activity Tracker
-      </h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+  const updateTask = (id, field, value) => {
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  };
+
+  const deleteTask = (id) => {
+    setTasks(tasks.filter((t) => t.id !== id));
+  };
+
+  const visibleTasks =
+    currentUser?.role === "manager"
+      ? tasks
+      : tasks.filter(
+          (t) =>
+            t.createdBy === currentUser?.name ||
+            t.assignedTo === currentUser?.name
+        );
+
+  if (!currentUser) {
+    return (
+      <div style={{ maxWidth: 400, margin: "50px auto" }}>
+        <h2>Login / Join</h2>
         <input
-          type="text"
-          placeholder="Masukkan nama"
-          className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Nama"
+          value={loginData.name}
+          onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
+          style={{ width: "100%", marginBottom: 8 }}
         />
-        <button
-          type="submit"
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-semibold"
+        <select
+          value={loginData.department}
+          onChange={(e) =>
+            setLoginData({ ...loginData, department: e.target.value })
+          }
+          style={{ width: "100%", marginBottom: 8 }}
         >
-          Login
-        </button>
-      </form>
-    </div>
-  );
-}
-
-// -------------------- Dashboard --------------------
-function Dashboard({ user, activities, onAdd, onUpdate, onDelete, onLogout }) {
-  return (
-    <div className="w-full max-w-5xl bg-white shadow-xl rounded-2xl p-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-indigo-800">
-          Daily Activity Tracker
-        </h1>
-        <button
-          onClick={onLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-        >
-          Logout
+          {departments.map((dep) => (
+            <option key={dep} value={dep}>
+              {dep}
+            </option>
+          ))}
+        </select>
+        <input
+          placeholder="Jabatan"
+          value={loginData.position}
+          onChange={(e) =>
+            setLoginData({ ...loginData, position: e.target.value })
+          }
+          style={{ width: "100%", marginBottom: 8 }}
+        />
+        <label style={{ display: "block", marginBottom: 8 }}>
+          <input
+            type="checkbox"
+            checked={loginData.role === "manager"}
+            onChange={(e) =>
+              setLoginData({
+                ...loginData,
+                role: e.target.checked ? "manager" : "member",
+              })
+            }
+          />{" "}
+          Login sebagai Manager
+        </label>
+        <button onClick={login} style={{ width: "100%" }}>
+          Masuk
         </button>
       </div>
-
-      {/* User Info */}
-      <p className="mb-6 text-gray-600">
-        {user.name} — {user.division}, {user.role}
-      </p>
-
-      {/* Form */}
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-        Tambah Aktivitas
-      </h2>
-      <ActivityForm onAdd={onAdd} />
-
-      {/* Summary */}
-      <Summary activities={activities} />
-
-      {/* Activity List */}
-      <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-2">
-        Daftar Aktivitas
-      </h2>
-      <ActivityList
-        activities={activities}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-      />
-    </div>
-  );
-}
-
-// -------------------- Activity Form --------------------
-function ActivityForm({ onAdd }) {
-  const [title, setTitle] = useState("");
-  const [desc, setDesc] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [status, setStatus] = useState("Belum mulai");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!title) return;
-    onAdd({ title, desc, start, end, status });
-    setTitle("");
-    setDesc("");
-    setStart("");
-    setEnd("");
-    setStatus("Belum mulai");
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg mb-6"
-    >
-      <input
-        type="text"
-        placeholder="Judul"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
-      />
-      <textarea
-        placeholder="Deskripsi"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        className="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
-      />
-      <input
-        type="time"
-        value={start}
-        onChange={(e) => setStart(e.target.value)}
-        className="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
-      />
-      <input
-        type="time"
-        value={end}
-        onChange={(e) => setEnd(e.target.value)}
-        className="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
-      />
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="p-2 border rounded-lg focus:ring-2 focus:ring-indigo-400"
-      >
-        <option>Belum mulai</option>
-        <option>On-going</option>
-        <option>Selesai</option>
-      </select>
-      <button
-        type="submit"
-        className="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-semibold"
-      >
-        Tambah
-      </button>
-    </form>
-  );
-}
-
-// -------------------- Summary --------------------
-function Summary({ activities }) {
-  const belum = activities.filter((a) => a.status === "Belum mulai").length;
-  const ongoing = activities.filter((a) => a.status === "On-going").length;
-  const selesai = activities.filter((a) => a.status === "Selesai").length;
-
-  return (
-    <div className="bg-indigo-50 p-4 rounded-lg shadow-sm">
-      <h3 className="font-semibold mb-2 text-indigo-700">Ringkasan (Total)</h3>
-      <div className="flex gap-4">
-        <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-sm">
-          Belum mulai: {belum}
-        </span>
-        <span className="px-3 py-1 rounded-full bg-yellow-200 text-yellow-800 text-sm">
-          On-going: {ongoing}
-        </span>
-        <span className="px-3 py-1 rounded-full bg-green-200 text-green-800 text-sm">
-          Selesai: {selesai}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// -------------------- Activity List --------------------
-function ActivityList({ activities, onUpdate, onDelete }) {
-  if (activities.length === 0) {
-    return <p className="text-gray-500">Belum ada aktivitas.</p>;
+    );
   }
 
   return (
-    <ul className="space-y-3">
-      {activities.map((a) => (
-        <ActivityItem
-          key={a.id}
-          activity={a}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-        />
-      ))}
-    </ul>
-  );
-}
-
-// -------------------- Activity Item --------------------
-function ActivityItem({ activity, onUpdate, onDelete }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(activity);
-
-  const handleSave = () => {
-    onUpdate(activity.id, form);
-    setIsEditing(false);
-  };
-
-  return (
-    <li className="p-4 border rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center bg-white shadow-sm">
-      {isEditing ? (
-        <div className="flex-1 space-y-2 w-full">
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="p-2 border rounded w-full"
-          />
-          <textarea
-            value={form.desc}
-            onChange={(e) => setForm({ ...form, desc: e.target.value })}
-            className="p-2 border rounded w-full"
-          />
-          <div className="flex gap-2">
-            <input
-              type="time"
-              value={form.start}
-              onChange={(e) => setForm({ ...form, start: e.target.value })}
-              className="p-2 border rounded"
-            />
-            <input
-              type="time"
-              value={form.end}
-              onChange={(e) => setForm({ ...form, end: e.target.value })}
-              className="p-2 border rounded"
-            />
+    <div style={{ maxWidth: 1200, margin: "20px auto" }}>
+      <h2>Daily Activity Tracker</h2>
+      <div style={{ marginBottom: 20 }}>
+        {currentUser ? (
+          <div>
+            <strong>{currentUser.name}</strong> —{" "}
+            <small>
+              {currentUser.department}, {currentUser.position} (
+              {currentUser.role})
+            </small>
+            <button onClick={logout} style={{ marginLeft: 10 }}>
+              Logout
+            </button>
           </div>
-          <select
-            value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
-            className="p-2 border rounded"
-          >
-            <option>Belum mulai</option>
-            <option>On-going</option>
-            <option>Selesai</option>
-          </select>
-        </div>
-      ) : (
-        <div>
-          <h4 className="font-bold">{activity.title}</h4>
-          <p className="text-sm text-gray-600">{activity.desc}</p>
-          <p className="text-xs text-gray-500">
-            {activity.start} - {activity.end}
-          </p>
-          <span
-            className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium ${
-              activity.status === "Belum mulai"
-                ? "bg-gray-200 text-gray-700"
-                : activity.status === "On-going"
-                ? "bg-yellow-200 text-yellow-800"
-                : "bg-green-200 text-green-800"
-            }`}
-          >
-            {activity.status}
-          </span>
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-4 md:mt-0 md:ml-4">
-        {isEditing ? (
-          <>
-            <button
-              onClick={handleSave}
-              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded"
-            >
-              Cancel
-            </button>
-          </>
         ) : (
-          <>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded"
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => onDelete(activity.id)}
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-            >
-              Hapus
-            </button>
-          </>
+          <em>Not logged in</em>
         )}
       </div>
-    </li>
+
+      <h3>Tambah Aktivitas</h3>
+      <input
+        placeholder="Judul"
+        value={newTask.title}
+        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+        style={{ width: "100%", marginBottom: 8 }}
+      />
+      <textarea
+        placeholder="Deskripsi"
+        value={newTask.desc}
+        onChange={(e) => setNewTask({ ...newTask, desc: e.target.value })}
+        style={{ width: "100%", marginBottom: 8, width: "100%" }}
+      />
+      <div style={{ marginBottom: 8 }}>
+        <label>Jam mulai: </label>
+        <input
+          type="time"
+          value={newTask.start}
+          onChange={(e) => setNewTask({ ...newTask, start: e.target.value })}
+        />
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <label>Jam selesai: </label>
+        <input
+          type="time"
+          value={newTask.end}
+          onChange={(e) => setNewTask({ ...newTask, end: e.target.value })}
+        />
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <label>Status: </label>
+        <select
+          value={newTask.status}
+          onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
+        >
+          <option>Belum mulai</option>
+          <option>On-going</option>
+          <option>Selesai</option>
+        </select>
+      </div>
+      {currentUser.role === "manager" && (
+        <div style={{ marginBottom: 8 }}>
+          <label>Assign ke: </label>
+          <select
+            value={newTask.assignedTo}
+            onChange={(e) =>
+              setNewTask({ ...newTask, assignedTo: e.target.value })
+            }
+          >
+            <option value="">(Pilih user)</option>
+            {users.map((u) => (
+              <option key={u.name} value={u.name}>
+                {u.name} — {u.department}, {u.position}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <button onClick={addTask}>Tambah</button>
+
+      <h3 style={{ marginTop: 30 }}>Daftar Aktivitas</h3>
+
+      {/* Resume aktivitas global */}
+      <div
+        style={{
+          marginBottom: 15,
+          padding: 10,
+          background: "#f9f9f9",
+          borderRadius: 6,
+          border: "1px solid #ddd",
+        }}
+      >
+        <strong>Ringkasan (Total):</strong>
+        <br />
+        Belum mulai:{" "}
+        {visibleTasks.filter((t) => t.status === "Belum mulai").length} | On-going:{" "}
+        {visibleTasks.filter((t) => t.status === "On-going").length} | Selesai:{" "}
+        {visibleTasks.filter((t) => t.status === "Selesai").length}
+      </div>
+
+      {currentUser.role === "manager" ? (
+        // Manager lihat aktivitas per user
+        <div style={{ display: "flex", gap: "16px", overflowX: "auto" }}>
+          {users
+            .filter((u) => u.role !== "manager")
+            .map((u) => {
+              const userTasks = tasks.filter(
+                (t) => t.createdBy === u.name || t.assignedTo === u.name
+              );
+              const belum = userTasks.filter((t) => t.status === "Belum mulai").length;
+              const ongoing = userTasks.filter((t) => t.status === "On-going").length;
+              const selesai = userTasks.filter((t) => t.status === "Selesai").length;
+              const totalDurasi = sumDurations(userTasks);
+              return (
+                <div
+                  key={u.name}
+                  style={{
+                    flex: "0 0 300px",
+                    border: "1px solid #ccc",
+                    borderRadius: 8,
+                    padding: 10,
+                    background: "#fafafa",
+                  }}
+                >
+                  <h4>
+                    {u.name} — {u.department}, {u.position}
+                  </h4>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      marginBottom: 8,
+                      background: "#eef",
+                      padding: 6,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <strong>Ringkasan:</strong> Belum mulai: {belum} | On-going:{" "}
+                    {ongoing} | Selesai: {selesai} | Total: {totalDurasi}
+                  </div>
+                  {userTasks.length === 0 && <em>Tidak ada aktivitas</em>}
+                  <ul style={{ listStyle: "none", padding: 0 }}>
+                    {userTasks.map((a) => (
+                      <li
+                        key={a.id}
+                        style={{
+                          border: "1px solid #ddd",
+                          borderRadius: 6,
+                          padding: 8,
+                          marginBottom: 8,
+                          background: "#fff",
+                        }}
+                      >
+                        <strong>{a.title}</strong>
+                        <div style={{ fontSize: 12 }}>{a.desc}</div>
+                        <div style={{ fontSize: 12, color: "#555" }}>
+                          {a.start} - {a.end} ({calcDuration(a.start, a.end)})
+                        </div>
+                        <div>
+                          <label>Status: </label>
+                          <select
+                            value={a.status}
+                            onChange={(e) =>
+                              updateTask(a.id, "status", e.target.value)
+                            }
+                          >
+                            <option>Belum mulai</option>
+                            <option>On-going</option>
+                            <option>Selesai</option>
+                          </select>
+                        </div>
+                        <button onClick={() => deleteTask(a.id)}>Hapus</button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+        </div>
+      ) : (
+        // Member lihat aktivitas pribadi
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {visibleTasks.map((a) => (
+            <li
+              key={a.id}
+              style={{
+                border: "1px solid #ccc",
+                padding: 10,
+                marginBottom: 10,
+                borderRadius: 6,
+              }}
+            >
+              <strong>{a.title}</strong> <br />
+              <small>{a.desc}</small>
+              <div style={{ fontSize: 12, color: "#555" }}>
+                {a.start} - {a.end} ({calcDuration(a.start, a.end)})
+              </div>
+              <div>
+                <label>Status: </label>
+                <select
+                  value={a.status}
+                  onChange={(e) => updateTask(a.id, "status", e.target.value)}
+                >
+                  <option>Belum mulai</option>
+                  <option>On-going</option>
+                  <option>Selesai</option>
+                </select>
+              </div>
+              <div style={{ fontSize: 12, color: "#777" }}>
+                Dibuat oleh: {a.createdBy}
+                {a.assignedTo && ` | Ditugaskan ke: ${a.assignedTo}`}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
-
-export default App;
