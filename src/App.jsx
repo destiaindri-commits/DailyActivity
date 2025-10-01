@@ -142,7 +142,7 @@ export default function App() {
     });
 
     // 🔥 Tambahan: kirim juga ke Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbxwXjBrARMT7PofZPfrsYOk-q9YMlA20Do_5BUw5h7EMLjPACdUMAKtu3IVeepqWw0/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbzqHZc-cpKl-jlyTjYXIrGPWKEYgVC5w06OrfqKvlg3v7zVow0DbAMx2hTj23nspR4/exec", {
       method: "POST",
       body: JSON.stringify(task),
       headers: {
