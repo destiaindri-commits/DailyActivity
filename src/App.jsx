@@ -124,7 +124,7 @@ export default function App() {
     });
 
     // 🔥 Kirim juga ke Google Sheet
-    fetch("https://script.google.com/macros/s/AKfycbzqHZc-cpKl-jlyTjYXIrGPWKEYgVC5w06OrfqKvlg3v7zVow0DbAMx2hTj23nspR4/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbw7-dXjiTp6ofIaDjgKDO2wj64HmUKns_4zYvurmfsdcq4L7OJ8D1-Vg3NS19Rou5s/exec", {
       method: "POST",
       body: JSON.stringify(task),
     })
