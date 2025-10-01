@@ -10,6 +10,13 @@
 // 2. Replace App.jsx with this file's content, install dependencies (none required beyond React)
 // 3. Add Tailwind CSS to project (optional) or the component will fall back to basic styling
 
+// Daily Activity Tracker - Single-file React prototype + Google Sheet Integration
+// How to run:
+// 1. Create a new Vite React project: `npm create vite@latest my-app --template react`
+// 2. Replace App.jsx with this file's content
+// 3. Install Tailwind (optional) or use default inline styles
+// 4. Ganti "YOUR_GOOGLE_SCRIPT_WEB_APP_URL" dengan URL Web App dari Google Apps Script
+
 import React, { useState, useEffect } from "react";
 
 // Hitung durasi aktivitas
@@ -127,6 +134,18 @@ export default function App() {
       status: "Belum mulai",
       assignedTo: "",
     });
+
+    // 🔥 Tambahan: kirim juga ke Google Sheet
+    fetch("https://script.google.com/macros/s/AKfycbw7-dXjiTp6ofIaDjgKDO2wj64HmUKns_4zYvurmfsdcq4L7OJ8D1-Vg3NS19Rou5s/exec", {
+      method: "POST",
+      body: JSON.stringify(task),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.text())
+      .then((msg) => console.log("Google Sheet response:", msg))
+      .catch((err) => console.error("Gagal kirim ke GSheet:", err));
   };
 
   const updateTask = (id, field, value) => {
@@ -298,7 +317,7 @@ export default function App() {
       </div>
 
       {currentUser.role === "manager" ? (
-        // Manager lihat aktivitas per user
+        // Manager lihat aktivitas per admin side-to-side
         <div style={{ display: "flex", gap: "16px", overflowX: "auto" }}>
           {users
             .filter((u) => u.role !== "manager")
